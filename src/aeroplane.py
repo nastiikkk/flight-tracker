@@ -61,3 +61,15 @@ class Aeroplane:
     def compare_baro_altitude(self, other: Aeroplane) -> bool:
         self.check_class_type(other)
         return self.baro_altitude > other.baro_altitude
+
+    @property
+    def callsign(self) -> str:
+        return self.__callsign
+
+    def to_dict(self) -> dict:
+        return {
+            'callsign': self.__callsign,
+            'origin_country': self.__origin_country,
+            'velocity': self.__velocity,
+            'baro_altitude': self.__baro_altitude
+        }
