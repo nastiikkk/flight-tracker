@@ -1,5 +1,5 @@
-
 import json
+
 import pytest
 
 from src.aeroplane import Aeroplane
@@ -8,28 +8,18 @@ from src.storage import BaseSaver, JSONSaver
 
 @pytest.fixture
 def saver(tmp_path):
-    file_path = tmp_path / 'aeroplanes.json'
+    file_path = tmp_path / "aeroplanes.json"
     return JSONSaver(str(file_path))
 
 
 @pytest.fixture
 def aeroplane():
-    return Aeroplane(
-        'AAA111',
-        'Germany',
-        250.5,
-        10000.0
-    )
+    return Aeroplane("AAA111", "Germany", 250.5, 10000.0)
 
 
 @pytest.fixture
 def second_aeroplane():
-    return Aeroplane(
-        'BBB222',
-        'France',
-        300.0,
-        12000.0
-    )
+    return Aeroplane("BBB222", "France", 300.0, 12000.0)
 
 
 @pytest.fixture
@@ -63,7 +53,7 @@ def test_read_missing_file(saver):
 
 
 def test_read_valid_json(saver, aeroplane):
-    with open(saver.file_path, 'w', encoding='utf-8') as file:
+    with open(saver.file_path, "w", encoding="utf-8") as file:
         json.dump([aeroplane.to_dict()], file)
 
     result = saver.read()
@@ -72,8 +62,8 @@ def test_read_valid_json(saver, aeroplane):
 
 
 def test_read_invalid_json(saver):
-    with open(saver.file_path, 'w', encoding='utf-8') as file:
-        file.write('invalid json')
+    with open(saver.file_path, "w", encoding="utf-8") as file:
+        file.write("invalid json")
 
     assert saver.read() == []
 
@@ -87,7 +77,7 @@ def test_check_class_type(saver, aeroplane):
 
 def test_check_class_type_invalid_object(saver):
     with pytest.raises(TypeError):
-        saver.check_class_type('not an aeroplane')
+        saver.check_class_type("not an aeroplane")
 
 
 # add_aeroplane
@@ -99,23 +89,16 @@ def test_add_aeroplane(saver, aeroplane):
     assert saver.read() == [aeroplane.to_dict()]
 
 
-def test_add_multiple_aeroplanes(
-    saver,
-    aeroplane,
-    second_aeroplane
-):
+def test_add_multiple_aeroplanes(saver, aeroplane, second_aeroplane):
     saver.add_aeroplane(aeroplane)
     saver.add_aeroplane(second_aeroplane)
 
-    assert saver.read() == [
-        aeroplane.to_dict(),
-        second_aeroplane.to_dict()
-    ]
+    assert saver.read() == [aeroplane.to_dict(), second_aeroplane.to_dict()]
 
 
 def test_add_aeroplane_invalid_object(saver):
     with pytest.raises(TypeError):
-        saver.add_aeroplane('not an aeroplane')
+        saver.add_aeroplane("not an aeroplane")
 
 
 # delete_aeroplane
@@ -126,10 +109,10 @@ def test_delete_aeroplane(saved_data, aeroplane):
 
     assert saved_data.read() == [
         {
-            'callsign': 'BBB222',
-            'origin_country': 'France',
-            'velocity': 300.0,
-            'baro_altitude': 12000.0
+            "callsign": "BBB222",
+            "origin_country": "France",
+            "velocity": 300.0,
+            "baro_altitude": 12000.0,
         }
     ]
 
@@ -144,7 +127,7 @@ def test_delete_last_aeroplane(saver, aeroplane):
 
 def test_delete_aeroplane_invalid_object(saver):
     with pytest.raises(TypeError):
-        saver.delete_aeroplane('not an aeroplane')
+        saver.delete_aeroplane("not an aeroplane")
 
 
 def test_delete_aeroplane_from_empty_file(saver, aeroplane):
@@ -157,55 +140,42 @@ def test_delete_aeroplane_from_empty_file(saver, aeroplane):
 
 
 def test_get_aeroplanes_by_callsign(saved_data):
-    result = saved_data.get_aeroplanes({
-        'callsign': 'AAA111'
-    })
+    result = saved_data.get_aeroplanes({"callsign": "AAA111"})
 
     assert len(result) == 1
-    assert result[0]['callsign'] == 'AAA111'
+    assert result[0]["callsign"] == "AAA111"
 
 
 def test_get_aeroplanes_by_origin_country(saved_data):
-    result = saved_data.get_aeroplanes({
-        'origin_country': 'France'
-    })
+    result = saved_data.get_aeroplanes({"origin_country": "France"})
 
     assert len(result) == 1
-    assert result[0]['origin_country'] == 'France'
+    assert result[0]["origin_country"] == "France"
 
 
 def test_get_aeroplanes_by_velocity(saved_data):
-    result = saved_data.get_aeroplanes({
-        'velocity': 250.5
-    })
+    result = saved_data.get_aeroplanes({"velocity": 250.5})
 
     assert len(result) == 1
-    assert result[0]['callsign'] == 'AAA111'
+    assert result[0]["callsign"] == "AAA111"
 
 
 def test_get_aeroplanes_by_altitude(saved_data):
-    result = saved_data.get_aeroplanes({
-        'baro_altitude': 12000.0
-    })
+    result = saved_data.get_aeroplanes({"baro_altitude": 12000.0})
 
     assert len(result) == 1
-    assert result[0]['callsign'] == 'BBB222'
+    assert result[0]["callsign"] == "BBB222"
 
 
 def test_get_aeroplanes_by_multiple_criteria(saved_data):
-    result = saved_data.get_aeroplanes({
-        'origin_country': 'Germany',
-        'velocity': 250.5
-    })
+    result = saved_data.get_aeroplanes({"origin_country": "Germany", "velocity": 250.5})
 
     assert len(result) == 1
-    assert result[0]['callsign'] == 'AAA111'
+    assert result[0]["callsign"] == "AAA111"
 
 
 def test_get_aeroplanes_no_matches(saved_data):
-    result = saved_data.get_aeroplanes({
-        'callsign': 'UNKNOWN'
-    })
+    result = saved_data.get_aeroplanes({"callsign": "UNKNOWN"})
 
     assert result == []
 
