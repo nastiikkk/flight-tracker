@@ -329,7 +329,3 @@ def user_interaction() -> None:
 
         except OSError as error:
             print(f"Ошибка при работе с файлом: {error}")
-
-
-if __name__ == "__main__":
-    user_interaction()
