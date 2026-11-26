@@ -1,5 +1,5 @@
-from abc import ABC, abstractmethod
 import json
+from abc import ABC, abstractmethod
 
 from src.aeroplane import Aeroplane
 
@@ -31,7 +31,7 @@ class JSONSaver(BaseSaver):
     def read(self) -> list:
 
         try:
-            with open(self.file_path, 'r', encoding='utf-8') as file:
+            with open(self.file_path, "r", encoding="utf-8") as file:
                 data = json.load(file)
 
         except FileNotFoundError:
@@ -44,7 +44,7 @@ class JSONSaver(BaseSaver):
 
     def check_class_type(self, other: object) -> None:
         if not isinstance(other, Aeroplane):
-            raise TypeError('Ожидается объект класса Aeroplane')
+            raise TypeError("Ожидается объект класса Aeroplane")
 
     def add_aeroplane(self, aeroplane: Aeroplane) -> None:
         self.check_class_type(aeroplane)
@@ -53,23 +53,19 @@ class JSONSaver(BaseSaver):
 
         data = self.read()
         data.append(aeroplane_dict)
-        
-        with open(self.file_path, 'w', encoding='utf-8') as file:
+
+        with open(self.file_path, "w", encoding="utf-8") as file:
             json.dump(data, file, ensure_ascii=False, indent=4)
-            
+
     def delete_aeroplane(self, aeroplane: Aeroplane) -> None:
 
         self.check_class_type(aeroplane)
 
         data = self.read()
 
-        data = [
-            item
-            for item in data
-            if item['callsign'] != aeroplane.callsign
-        ]
+        data = [item for item in data if item["callsign"] != aeroplane.callsign]
 
-        with open(self.file_path, 'w', encoding='utf-8') as file:
+        with open(self.file_path, "w", encoding="utf-8") as file:
             json.dump(data, file, ensure_ascii=False, indent=4)
 
     def get_aeroplanes(self, criteria: dict) -> list:
@@ -79,10 +75,7 @@ class JSONSaver(BaseSaver):
         result = []
 
         for aeroplane in data:
-            if all(
-                aeroplane.get(key) == value
-                for key, value in criteria.items()
-            ):
+            if all(aeroplane.get(key) == value for key, value in criteria.items()):
                 result.append(aeroplane)
 
         return result
