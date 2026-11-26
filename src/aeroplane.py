@@ -66,6 +66,18 @@ class Aeroplane:
     def callsign(self) -> str:
         return self.__callsign
 
+    @property
+    def origin_country(self) -> str:
+        return self.__origin_country
+
+    @property
+    def baro_altitude(self) -> float:
+        return self.__baro_altitude
+
+    @property
+    def velocity(self) -> float:
+        return self.__velocity
+
     def to_dict(self) -> dict:
         return {
             'callsign': self.__callsign,
