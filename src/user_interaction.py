@@ -75,18 +75,36 @@ def get_top_aeroplanes(
 
 
 def print_aeroplanes(aeroplanes: list[Aeroplane]) -> None:
+
     if not aeroplanes:
-        print('Самолёты не найдены')
+        print('\nСамолёты не найдены')
         return
 
     print('\nНайденные самолёты:')
 
     for aeroplane in aeroplanes:
         print(
-            f'Борт: {aeroplane.callsign}, '
-            f'Страна происхождения: {aeroplane.origin_country}, '
-            f'Скорость: {aeroplane.velocity} м/с, '
-            f'Высота: {aeroplane.baro_altitude} м'
+            f'\nБорт: {aeroplane.callsign}'
+            f'\nСтрана происхождения: {aeroplane.origin_country}'
+            f'\nСкорость: {aeroplane.velocity} м/с'
+            f'\nВысота: {aeroplane.baro_altitude} м'
+        )
+
+
+def print_saved_aeroplanes(aeroplanes: list[dict]) -> None:
+
+    if not aeroplanes:
+        print('\nСамолёты не найдены')
+        return
+
+    print('\nСохранённые самолёты:')
+
+    for aeroplane in aeroplanes:
+        print(
+            f'\nБорт: {aeroplane["callsign"]}'
+            f'\nСтрана происхождения: {aeroplane["origin_country"]}'
+            f'\nСкорость: {aeroplane["velocity"]} м/с'
+            f'\nВысота: {aeroplane["baro_altitude"]} м'
         )
 
 
@@ -113,89 +131,251 @@ def save_aeroplanes(
     return saved_count
 
 
+def get_aeroplanes_from_api(
+    api: AeroplanesAPI,
+    saver: JSONSaver
+) -> None:
+
+    country = input(
+        '\nВведите страну, над территорией которой искать самолёты: '
+    ).strip()
+
+    if not country:
+        raise ValueError('Название страны не может быть пустым')
+
+    data = api.get_aeroplanes(country)
+
+    if not data:
+        print('Страна не найдена')
+        return
+
+    aeroplanes = Aeroplane.cast_to_object_list(data)
+
+    if not aeroplanes:
+        print('Самолёты не найдены')
+        return
+
+    filter_input = input(
+        '\nСамолёты каких стран происхождения оставить? '
+        'Введите страны через запятую: '
+    )
+
+    filtered_aeroplanes = filter_aeroplanes(
+        aeroplanes,
+        filter_input.split(',')
+    )
+
+    altitude_range = input(
+    '\nВведите диапазон высот, например 1000-10000: '
+    )
+
+    ranged_aeroplanes = get_aeroplanes_by_altitude(
+        filtered_aeroplanes,
+        altitude_range
+    )
+
+    sorted_aeroplanes = sort_aeroplanes(ranged_aeroplanes)
+
+    top_n = int(
+        input('\nСколько самолётов показать в топе по высоте? ')
+    )
+
+    top_aeroplanes = get_top_aeroplanes(
+        sorted_aeroplanes,
+        top_n
+    )
+
+    print('\nТоп самолётов по высоте:')
+    print_aeroplanes(top_aeroplanes)
+
+    if not sorted_aeroplanes:
+        return
+
+    save_choice = input(
+        '\nСохранить найденные самолёты в JSON-файл?\n'
+        '0 — Нет\n'
+        '1 — Да\n'
+        'Ваш выбор: '
+    ).strip()
+
+    if save_choice == '1':
+        saved_count = save_aeroplanes(saver, top_aeroplanes)
+        print(f'Добавлено новых самолётов: {saved_count}')
+
+    elif save_choice == '0':
+        print('Сохранение отменено')
+
+    else:
+        raise ValueError('Введите 0 или 1')
+
+
+def delete_saved_aeroplane(saver: JSONSaver) -> None:
+
+    callsign = input(
+        '\nВведите callsign самолёта для удаления: '
+    ).strip()
+
+    if not callsign:
+        raise ValueError('Callsign не может быть пустым')
+
+    result = saver.get_aeroplanes({'callsign': callsign})
+
+    if not result:
+        print('Самолёт с таким callsign не найден')
+        return
+
+    aeroplane_data = result[0]
+
+    aeroplane = Aeroplane(
+        aeroplane_data['callsign'],
+        aeroplane_data['origin_country'],
+        aeroplane_data['velocity'],
+        aeroplane_data['baro_altitude']
+    )
+
+    if saver.delete_aeroplane(aeroplane):
+        print(f'Самолёт {callsign} удалён')
+
+
+def search_saved_aeroplanes(saver: JSONSaver) -> None:
+
+    print(
+        '\nПоиск сохранённых самолётов:\n'
+        '1 — По callsign\n'
+        '2 — По стране происхождения\n'
+        '3 — По скорости\n'
+        '4 — По высоте'
+    )
+
+    choice = input('Ваш выбор: ').strip()
+
+    criteria_fields = {
+        '1': 'callsign',
+        '2': 'origin_country',
+        '3': 'velocity',
+        '4': 'baro_altitude'
+    }
+
+    if choice not in criteria_fields:
+        raise ValueError('Такого пункта поиска нет')
+
+    field = criteria_fields[choice]
+
+    value = input('Введите значение для поиска: ').strip()
+
+    if not value:
+        raise ValueError('Значение для поиска не может быть пустым')
+
+    if field in ('velocity', 'baro_altitude'):
+        try:
+            value = float(value)
+        except ValueError:
+            raise ValueError(
+                'Для поиска скорости и высоты нужно ввести число'
+            )
+
+    result = saver.get_aeroplanes({field: value})
+
+    print_saved_aeroplanes(result)
+
+
+def compare_saved_aeroplanes(saver: JSONSaver) -> None:
+
+    first_callsign = input(
+        '\nВведите callsign первого самолёта: '
+    ).strip()
+
+    second_callsign = input(
+        'Введите callsign второго самолёта: '
+    ).strip()
+
+    if not first_callsign or not second_callsign:
+        raise ValueError('Callsign не может быть пустым')
+
+    first_result = saver.get_aeroplanes({'callsign': first_callsign})
+    second_result = saver.get_aeroplanes({'callsign': second_callsign})
+
+    if not first_result or not second_result:
+        print('Один или оба самолёта не найдены')
+        return
+
+    first_data = first_result[0]
+    second_data = second_result[0]
+
+    first = Aeroplane(**first_data)
+    second = Aeroplane(**second_data)
+
+    if first.compare_velocity(second):
+        print(f'{first.callsign} быстрее')
+    elif second.compare_velocity(first):
+        print(f'{second.callsign} быстрее')
+    else:
+        print('Скорость самолётов одинаковая')
+
+    if first.compare_baro_altitude(second):
+        print(f'{first.callsign} летит выше')
+    elif second.compare_baro_altitude(first):
+        print(f'{second.callsign} летит выше')
+    else:
+        print('Высота самолётов одинаковая')
+
+
 def user_interaction() -> None:
+
     api = AeroplanesAPI()
     saver = JSONSaver(str(DATA_FILE))
 
-    try:
-        country = input('Введите название страны для поиска самолётов: ').strip()
+    while True:
 
-        if not country:
-            raise ValueError('Название страны не может быть пустым')
-
-        data = api.get_aeroplanes(country)
-
-        if not data:
-            print('По указанной стране самолёты не найдены')
-            return
-
-        aeroplanes = Aeroplane.cast_to_object_list(data)
-
-        if not aeroplanes:
-            print('Самолёты не найдены')
-            return
-
-        top_n = int(
-            input(
-                'Введите количество самолётов для вывода в топ N: '
-            )
+        print(
+            '\n========== FLIGHT TRACKER ==========\n'
+            '1 — Получить самолёты\n'
+            '2 — Удалить сохранённый самолёт\n'
+            '3 — Найти или сравнить сохранённые самолёты\n'
+            '0 — Выход'
         )
 
-        filter_input = input(
-            'Самолёты каких стран происхождения оставить? '
-            'Введите страны через запятую: '
-        )
+        choice = input('Выберите действие: ').strip()
 
-        filter_words = filter_input.split(',')
+        try:
+            if choice == '1':
+                get_aeroplanes_from_api(api, saver)
 
-        altitude_range = input(
-            'Введите диапазон высот полёта, например 1000-5000: '
-        )
+            elif choice == '2':
+                delete_saved_aeroplane(saver)
 
-        filtered_aeroplanes = filter_aeroplanes(
-            aeroplanes,
-            filter_words
-        )
+            elif choice == '3':
+                print(
+                    '\n1 — Поиск самолётов\n'
+                    '2 — Сравнение двух самолётов'
+                )
 
-        ranged_aeroplanes = get_aeroplanes_by_altitude(
-            filtered_aeroplanes,
-            altitude_range
-        )
+                search_choice = input('Ваш выбор: ').strip()
 
-        sorted_aeroplanes = sort_aeroplanes(ranged_aeroplanes)
+                if search_choice == '1':
+                    search_saved_aeroplanes(saver)
 
-        top_aeroplanes = get_top_aeroplanes(
-            sorted_aeroplanes,
-            top_n
-        )
+                elif search_choice == '2':
+                    compare_saved_aeroplanes(saver)
 
-        print_aeroplanes(top_aeroplanes)
+                else:
+                    raise ValueError('Такого пункта нет')
 
-        save_choice = input(
-            '\nСохранить отфильтрованные самолёты в JSON-файл?\n'
-            '0 — Нет\n'
-            '1 — Да\n'
-            'Ваш выбор: '
-        )
+            elif choice == '0':
+                print('Работа программы завершена')
+                break
 
-        if save_choice == '1':
-            saved_count = save_aeroplanes(saver, ranged_aeroplanes)
-            print(f'В JSON добавлено новых самолётов: {saved_count}')
+            else:
+                print('Такого пункта меню нет')
 
-        elif save_choice == '0':
-            print('Сохранение отменено')
+        except RequestException as error:
+            print(f'Ошибка подключения к API: {error}')
 
-        else:
-            raise ValueError('Введите 0 или 1')
+        except (ValueError, TypeError, KeyError) as error:
+            print(f'Ошибка: {error}')
 
-    except RequestException as error:
-        print(f'Ошибка при обращении к API: {error}')
-
-    except ValueError as error:
-        print(f'Ошибка ввода или данных: {error}')
-
-    except OSError as error:
-        print(f'Ошибка при работе с JSON-файлом: {error}')
+        except OSError as error:
+            print(f'Ошибка при работе с файлом: {error}')
 
 
 if __name__ == '__main__':
